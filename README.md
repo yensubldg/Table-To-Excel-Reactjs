@@ -3,13 +3,13 @@ Export data in table to excel file using reactjs.
 ### Installation
 
 ```
-npm install table-to-excel-reactjs
+npm install table-to-excel-react
 ```
 
 or
 
 ```
-yarn add table-to-excel-reactjs
+yarn add table-to-excel-react
 ```
 ### Features
 - Component to export table to excel
