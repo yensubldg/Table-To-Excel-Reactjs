@@ -1,6 +1,6 @@
 {
   "name": "table-to-excel-react",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Export table data to Excel file using ReactJS",
   "main": "lib/index.js",
   "types": "dist/index.d.ts",
