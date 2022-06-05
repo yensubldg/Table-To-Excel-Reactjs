@@ -1,5 +1,7 @@
 # Table To Excel - Reactjs
+
 Export data in table to excel file using reactjs.
+
 ### Installation
 
 ```
@@ -11,7 +13,9 @@ or
 ```
 yarn add table-to-excel-react
 ```
+
 ### Features
+
 - Component to export table to excel
 - Hook to export table to excel
 - Download HTML table to excel in .xls file
@@ -19,6 +23,7 @@ yarn add table-to-excel-react
 - No need server side
 
 ### Usage
+
 #### with Component
 
 A list of available properties can be found below. These must be passed to the containing `TableToExcelReact` component
@@ -33,7 +38,7 @@ A list of available properties can be found below. These must be passed to the c
 #### Example
 
 ```jsx
-import { TableToExcelReact } from "table-to-excel-reactjs";
+import { TableToExcelReact } from "table-to-excel-react";
 
 function App() {
   return (
@@ -72,16 +77,16 @@ export default App;
 #### with Hook
 
 A list of available properties can be found below. These must be passed to the containing `useDownloadExcel` hook.
-| Property            | Type          | Description                         |
+| Property | Type | Description |
 | ------------------- | ------------- | ----------------------------------- |
-| **table**           | _string_      | id of table to export               |
-| **fileName**        | _string_      | Name of Excel file.                 |
-| **sheet**           | _string_      | Name of Excel sheet.                |
+| **table** | _string_ | id of table to export |
+| **fileName** | _string_ | Name of Excel file. |
+| **sheet** | _string_ | Name of Excel sheet. |
 
 #### Example
 
 ```jsx
-import { useDownloadExcel } from "table-to-excel-reactjs";
+import { useDownloadExcel } from "table-to-excel-react";
 function App() {
   const { onDownload } = useDownloadExcel({
     fileName: "myFile",
@@ -119,10 +124,78 @@ function App() {
 export default App;
 ```
 
+### Multiple tables in one file
+
+Here is a trick when formatting from HTML table to excel, you can wrap multiple tables in a parent tag and set its id to match the config like the examples above
+
+#### Example
+
+```jsx
+import { TableToExcelReact } from "table-to-excel-react";
+
+function App() {
+  return (
+    <div className="App">
+      <TableToExcelReact table="table-to-xls" fileName="myFile" sheet="sheet 1">
+        <button>Download</button>
+      </TableToExcelReact>
+      <div id="table-to-xls">
+        <table>
+          <thead>
+            <tr>
+              <th>Firstname</th>
+              <th>Lastname</th>
+              <th>Age</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Edison</td>
+              <td>Padilla</td>
+              <td>20</td>
+            </tr>
+            <tr>
+              <td>Alberto</td>
+              <td>Lopez</td>
+              <td>94</td>
+            </tr>
+          </tbody>
+        </table>
+        <table>
+          <thead>
+            <tr>
+              <th>Firstname</th>
+              <th>Lastname</th>
+              <th>Age</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Edison</td>
+              <td>Padilla</td>
+              <td>20</td>
+            </tr>
+            <tr>
+              <td>Alberto</td>
+              <td>Lopez</td>
+              <td>94</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+export default App;
+```
+
 ### License
+
 ISC License (ISC)
 
 ### Coming soon
+
 - Export multiple tables to excel
 - Customize styles
 - Export to multiple sheets
