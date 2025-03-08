@@ -1,3 +1,23 @@
+# Source files
+src/
+examples/
+__tests__/
+
+# Development files
+.git/
+.github/
+.vscode/
+node_modules/
+coverage/
+jest.config.js
+jest.setup.js
+tsconfig.json
+.babelrc
+.gitignore
+.eslintrc
+.prettierrc
+
+# Misc
+*.log
+*.tgz
 .DS_Store
-node_modules
-npm-debug.log

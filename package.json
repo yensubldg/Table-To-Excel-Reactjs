@@ -1,32 +1,59 @@
 {
   "name": "table-to-excel-react",
-  "version": "1.0.3",
+  "version": "1.1.1",
   "description": "Export table data to Excel file using ReactJS",
   "main": "lib/index.js",
-  "types": "dist/index.d.ts",
+  "types": "lib/index.d.ts",
   "private": false,
   "scripts": {
     "build": "tsc",
-    "prepublish": "yarn build"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "clean": "rimraf lib",
+    "prebuild": "npm run clean",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "format:all": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\" && npm run lint:fix",
+    "format:script": "node format-code.js",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run format:script",
+    "preversion": "npm run lint",
+    "version": "npm run format && git add -A src",
+    "postversion": "git push && git push --tags"
   },
   "peerDependencies": {
-    "react": "^17.x.x"
+    "react": "^17.0.0 || ^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.17.12",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^14.0.0",
+    "@types/jest": "^29.5.0",
     "@types/node": "^17.0.39",
     "@types/react": "^18.0.10",
+    "@typescript-eslint/eslint-plugin": "^5.59.0",
+    "@typescript-eslint/parser": "^5.59.0",
+    "eslint": "^8.38.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "jest": "^29.5.0",
+    "jest-environment-jsdom": "^29.5.0",
+    "prettier": "^2.8.8",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
+    "rimraf": "^5.0.1",
+    "ts-jest": "^29.1.0",
     "typescript": "^4.7.2"
   },
-  "dependencies": {},
+  "dependencies": {
+    "xlsx": "^0.18.5",
+    "xlsx-style": "^0.8.13"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yensubldg/Table-To-Excel-Reactjs.git"
@@ -35,9 +62,13 @@
     "table",
     "excel",
     "reactjs",
-    "export"
+    "export",
+    "xlsx",
+    "spreadsheet",
+    "multiple-sheets",
+    "styled-excel"
   ],
-  "author": "yensubldg <windev.thang@gmail.com>",
+  "author": "yensubldg1 <thang11a5tp@gmail.com>",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/yensubldg/Table-To-Excel-Reactjs/issues"

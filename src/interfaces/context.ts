@@ -3,4 +3,4 @@ export interface IContext {
   table: any;
 }
 
-export type ContextType = "worksheet" | "table";
+export type ContextType = 'worksheet' | 'table';
