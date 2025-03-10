@@ -1,5 +1,5 @@
 // Import Jest DOM extensions
-require('@testing-library/jest-dom');
+import '@testing-library/jest-dom';
 
 // Mock window.btoa for tests
 if (typeof window.btoa === 'undefined') {

@@ -1,5 +1,4 @@
-import * as XLSX from 'xlsx';
-import * as XLSXStyle from 'xlsx-style';
+import ExcelJS from 'exceljs';
 import {
   UseExport,
   UseExportReturn,
@@ -41,83 +40,75 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
   }
 
   /**
-   * Converts a hex color to the XLSX format
+   * Converts a hex color to the ExcelJS format
    */
-  function hexToXLSXColor(hex: string): { rgb: string } {
+  function hexToColor(hex: string): string {
     // Remove # if present
-    const cleanHex = hex.startsWith('#') ? hex.substring(1) : hex;
-    return { rgb: cleanHex };
+    return hex.startsWith('#') ? hex.substring(1) : hex;
   }
 
   /**
-   * Converts our style interface to XLSX style format
+   * Applies our style interface to an ExcelJS cell
    */
-  function convertToXLSXStyle(style: CellStyle): XLSXStyle.CellStyle {
-    const xlsxStyle: XLSXStyle.CellStyle = {};
-
+  function applyStyleToCell(cell: ExcelJS.Cell, style: CellStyle): void {
     if (style.font) {
-      xlsxStyle.font = {
+      cell.font = {
         name: style.font.name,
-        sz: style.font.size,
+        size: style.font.size,
         bold: style.font.bold,
         italic: style.font.italic,
-        underline: style.font.underline,
+        underline: style.font.underline ? 'single' : undefined,
+        color: style.font.color ? { argb: 'FF' + hexToColor(style.font.color) } : undefined,
       };
-
-      if (style.font.color) {
-        xlsxStyle.font.color = hexToXLSXColor(style.font.color);
-      }
     }
 
     if (style.fill && style.fill.backgroundColor) {
-      xlsxStyle.fill = {
-        patternType: style.fill.patternType || 'solid',
-        fgColor: hexToXLSXColor(style.fill.backgroundColor),
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF' + hexToColor(style.fill.backgroundColor) },
       };
     }
 
     if (style.border) {
-      xlsxStyle.border = {};
-
-      if (style.border.top) {
-        xlsxStyle.border.top = {
-          style: style.border.top.style || 'thin',
-        };
-        if (style.border.top.color) {
-          xlsxStyle.border.top.color = hexToXLSXColor(style.border.top.color);
-        }
-      }
-
-      if (style.border.bottom) {
-        xlsxStyle.border.bottom = {
-          style: style.border.bottom.style || 'thin',
-        };
-        if (style.border.bottom.color) {
-          xlsxStyle.border.bottom.color = hexToXLSXColor(style.border.bottom.color);
-        }
-      }
-
-      if (style.border.left) {
-        xlsxStyle.border.left = {
-          style: style.border.left.style || 'thin',
-        };
-        if (style.border.left.color) {
-          xlsxStyle.border.left.color = hexToXLSXColor(style.border.left.color);
-        }
-      }
-
-      if (style.border.right) {
-        xlsxStyle.border.right = {
-          style: style.border.right.style || 'thin',
-        };
-        if (style.border.right.color) {
-          xlsxStyle.border.right.color = hexToXLSXColor(style.border.right.color);
-        }
-      }
+      cell.border = {
+        top: style.border.top
+          ? {
+              style: style.border.top.style || 'thin',
+              color: style.border.top.color
+                ? { argb: 'FF' + hexToColor(style.border.top.color) }
+                : undefined,
+            }
+          : undefined,
+        bottom: style.border.bottom
+          ? {
+              style: style.border.bottom.style || 'thin',
+              color: style.border.bottom.color
+                ? { argb: 'FF' + hexToColor(style.border.bottom.color) }
+                : undefined,
+            }
+          : undefined,
+        left: style.border.left
+          ? {
+              style: style.border.left.style || 'thin',
+              color: style.border.left.color
+                ? { argb: 'FF' + hexToColor(style.border.left.color) }
+                : undefined,
+            }
+          : undefined,
+        right: style.border.right
+          ? {
+              style: style.border.right.style || 'thin',
+              color: style.border.right.color
+                ? { argb: 'FF' + hexToColor(style.border.right.color) }
+                : undefined,
+            }
+          : undefined,
+      };
     }
 
     if (style.alignment) {
-      xlsxStyle.alignment = {
+      cell.alignment = {
         horizontal: style.alignment.horizontal,
         vertical: style.alignment.vertical,
         wrapText: style.alignment.wrapText,
@@ -125,45 +116,41 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
     }
 
     if (style.numberFormat) {
-      xlsxStyle.numFmt = style.numberFormat;
+      cell.numFmt = style.numberFormat;
     }
-
-    return xlsxStyle;
   }
 
   /**
    * Applies styles to a worksheet
    */
-  function applyStyles(ws: XLSX.WorkSheet, styles?: TableStyles): XLSX.WorkSheet {
-    if (!styles) return ws;
+  function applyStyles(ws: ExcelJS.Worksheet, styles?: TableStyles): void {
+    if (!styles) return;
 
-    // Get the range of the worksheet
-    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+    // Get the used range of the worksheet
+    const startRow = 1;
+    const endRow = ws.rowCount || 1;
+    const startCol = 1;
+    const endCol = ws.columnCount || 1;
 
     // Apply header row styles
     if (styles.headerRow) {
-      const headerStyle = convertToXLSXStyle(styles.headerRow);
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cellRef = XLSX.utils.encode_cell({ r: range.s.r, c: col });
-        if (ws[cellRef]) {
-          ws[cellRef].s = headerStyle;
-        }
+      const headerRow = ws.getRow(startRow);
+      for (let col = startCol; col <= endCol; col++) {
+        const cell = headerRow.getCell(col);
+        applyStyleToCell(cell, styles.headerRow);
       }
     }
 
     // Apply data row styles (alternating if alternatingRow is provided)
     if (styles.dataRow) {
-      const dataStyle = convertToXLSXStyle(styles.dataRow);
-      const altStyle = styles.alternatingRow ? convertToXLSXStyle(styles.alternatingRow) : null;
+      for (let row = startRow + 1; row <= endRow; row++) {
+        const rowStyle =
+          styles.alternatingRow && row % 2 === 0 ? styles.alternatingRow : styles.dataRow;
+        const dataRow = ws.getRow(row);
 
-      for (let row = range.s.r + 1; row <= range.e.r; row++) {
-        const rowStyle = altStyle && row % 2 === 0 ? altStyle : dataStyle;
-
-        for (let col = range.s.c; col <= range.e.c; col++) {
-          const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-          if (ws[cellRef]) {
-            ws[cellRef].s = rowStyle;
-          }
+        for (let col = startCol; col <= endCol; col++) {
+          const cell = dataRow.getCell(col);
+          applyStyleToCell(cell, rowStyle);
         }
       }
     }
@@ -171,41 +158,132 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
     // Apply custom cell styles
     if (styles.cells) {
       Object.entries(styles.cells).forEach(([cellRange, cellStyle]) => {
-        const range = XLSX.utils.decode_range(cellRange);
-        const style = convertToXLSXStyle(cellStyle);
+        // Parse cell range like 'A1:B5'
+        const [start, end] = cellRange.split(':');
 
-        for (let row = range.s.r; row <= range.e.r; row++) {
-          for (let col = range.s.c; col <= range.e.c; col++) {
-            const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-            if (ws[cellRef]) {
-              ws[cellRef].s = style;
+        if (!start || !end) {
+          // Handle single cell case
+          const match = start.match(/([A-Z]+)(\d+)/);
+          if (match) {
+            const col = match[1];
+            const row = parseInt(match[2]);
+            const cell = ws.getCell(start);
+            applyStyleToCell(cell, cellStyle);
+          }
+          return;
+        }
+
+        const startMatch = start.match(/([A-Z]+)(\d+)/);
+        const endMatch = end.match(/([A-Z]+)(\d+)/);
+
+        if (startMatch && endMatch) {
+          const startCol = startMatch[1];
+          const startRow = parseInt(startMatch[2]);
+          const endCol = endMatch[1];
+          const endRow = parseInt(endMatch[2]);
+
+          // Convert column letters to numbers
+          const startColNum = colLetterToNumber(startCol);
+          const endColNum = colLetterToNumber(endCol);
+
+          for (let row = startRow; row <= endRow; row++) {
+            for (let col = startColNum; col <= endColNum; col++) {
+              const colLetter = numberToColLetter(col);
+              const cell = ws.getCell(`${colLetter}${row}`);
+              applyStyleToCell(cell, cellStyle);
             }
           }
         }
       });
     }
+  }
 
-    return ws;
+  /**
+   * Convert column letter to number (A -> 1, B -> 2, etc.)
+   */
+  function colLetterToNumber(colLetter: string): number {
+    let result = 0;
+    for (let i = 0; i < colLetter.length; i++) {
+      result = result * 26 + (colLetter.charCodeAt(i) - 64);
+    }
+    return result;
+  }
+
+  /**
+   * Convert column number to letter (1 -> A, 2 -> B, etc.)
+   */
+  function numberToColLetter(num: number): string {
+    let result = '';
+    while (num > 0) {
+      const modulo = (num - 1) % 26;
+      result = String.fromCharCode(65 + modulo) + result;
+      num = Math.floor((num - modulo) / 26);
+    }
+    return result;
   }
 
   /**
    * Creates a worksheet from custom data
    */
-  function createWorksheetFromData(data: any[][], headers?: string[]): XLSX.WorkSheet {
-    let wsData = data;
+  function createWorksheetFromData(
+    workbook: ExcelJS.Workbook,
+    data: any[][],
+    headers?: string[]
+  ): ExcelJS.Worksheet {
+    const worksheet = workbook.addWorksheet('Sheet');
 
     // Add headers if provided
     if (headers && headers.length > 0) {
-      wsData = [headers, ...data];
+      worksheet.addRow(headers);
     }
 
-    return XLSX.utils.aoa_to_sheet(wsData);
+    // Add data rows
+    data.forEach(row => {
+      worksheet.addRow(row);
+    });
+
+    return worksheet;
   }
 
   /**
-   * Exports data to Excel using the XLSX library
+   * Creates a worksheet from an HTML table
    */
-  function downloadWithXLSX(
+  function createWorksheetFromTable(
+    workbook: ExcelJS.Workbook,
+    tableElement: HTMLTableElement
+  ): ExcelJS.Worksheet {
+    const worksheet = workbook.addWorksheet('Sheet');
+
+    // Process table headers
+    const headerRow = tableElement.querySelector('thead tr');
+    if (headerRow) {
+      const headers = Array.from(headerRow.querySelectorAll('th, td')).map(
+        cell => cell.textContent?.trim() || ''
+      );
+      if (headers.length > 0) {
+        worksheet.addRow(headers);
+      }
+    }
+
+    // Process table body
+    const rows = tableElement.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+      const rowData = Array.from(row.querySelectorAll('td')).map(cell => {
+        // Try to convert to number if possible
+        const text = cell.textContent?.trim() || '';
+        const num = Number(text);
+        return !isNaN(num) && text !== '' ? num : text;
+      });
+      worksheet.addRow(rowData);
+    });
+
+    return worksheet;
+  }
+
+  /**
+   * Exports data to Excel using the ExcelJS library
+   */
+  function downloadWithExcelJS(
     fileName: string,
     format: 'xlsx' | 'xls' = 'xlsx',
     sheets?: SheetConfig[],
@@ -217,25 +295,59 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
   ): boolean {
     try {
       // Create a workbook
-      const wb = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
 
       // Handle multiple sheets
       if (sheets && sheets.length > 0) {
         for (const sheetConfig of sheets) {
-          let ws: XLSX.WorkSheet;
+          let worksheet: ExcelJS.Worksheet;
 
           // Create worksheet from table or data
           if (sheetConfig.tableId) {
-            const tableElement = document.getElementById(sheetConfig.tableId);
+            const tableElement = document.getElementById(sheetConfig.tableId) as HTMLTableElement;
             if (!tableElement) {
               if (process.env.NODE_ENV !== 'production') {
                 console.error(`Table with id "${sheetConfig.tableId}" not found`);
               }
               continue;
             }
-            ws = XLSX.utils.table_to_sheet(tableElement);
+
+            worksheet = workbook.addWorksheet(sheetConfig.name);
+
+            // Process table headers
+            const headerRow = tableElement.querySelector('thead tr');
+            if (headerRow) {
+              const headers = Array.from(headerRow.querySelectorAll('th, td')).map(
+                cell => cell.textContent?.trim() || ''
+              );
+              if (headers.length > 0) {
+                worksheet.addRow(headers);
+              }
+            }
+
+            // Process table body
+            const rows = tableElement.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+              const rowData = Array.from(row.querySelectorAll('td')).map(cell => {
+                // Try to convert to number if possible
+                const text = cell.textContent?.trim() || '';
+                const num = Number(text);
+                return !isNaN(num) && text !== '' ? num : text;
+              });
+              worksheet.addRow(rowData);
+            });
           } else if (sheetConfig.data) {
-            ws = createWorksheetFromData(sheetConfig.data, sheetConfig.headers);
+            worksheet = workbook.addWorksheet(sheetConfig.name);
+
+            // Add headers if provided
+            if (sheetConfig.headers && sheetConfig.headers.length > 0) {
+              worksheet.addRow(sheetConfig.headers);
+            }
+
+            // Add data rows
+            sheetConfig.data.forEach(row => {
+              worksheet.addRow(row);
+            });
           } else {
             if (process.env.NODE_ENV !== 'production') {
               console.error(`Sheet "${sheetConfig.name}" has no data source`);
@@ -245,18 +357,15 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
 
           // Apply styles if provided
           if (sheetConfig.styles) {
-            ws = applyStyles(ws, sheetConfig.styles);
+            applyStyles(worksheet, sheetConfig.styles);
           }
-
-          // Add worksheet to workbook
-          XLSX.utils.book_append_sheet(wb, ws, sheetConfig.name);
         }
       }
       // Handle multiple tables
       else if (useExport.tables && useExport.tables.length > 0) {
         for (let i = 0; i < useExport.tables.length; i++) {
           const tableId = useExport.tables[i];
-          const tableElement = document.getElementById(tableId);
+          const tableElement = document.getElementById(tableId) as HTMLTableElement;
 
           if (!tableElement) {
             if (process.env.NODE_ENV !== 'production') {
@@ -265,32 +374,86 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
             continue;
           }
 
-          const ws = XLSX.utils.table_to_sheet(tableElement);
+          const worksheet = workbook.addWorksheet(`Sheet${i + 1}`);
+
+          // Process table headers
+          const headerRow = tableElement.querySelector('thead tr');
+          if (headerRow) {
+            const headers = Array.from(headerRow.querySelectorAll('th, td')).map(
+              cell => cell.textContent?.trim() || ''
+            );
+            if (headers.length > 0) {
+              worksheet.addRow(headers);
+            }
+          }
+
+          // Process table body
+          const rows = tableElement.querySelectorAll('tbody tr');
+          rows.forEach(row => {
+            const rowData = Array.from(row.querySelectorAll('td')).map(cell => {
+              // Try to convert to number if possible
+              const text = cell.textContent?.trim() || '';
+              const num = Number(text);
+              return !isNaN(num) && text !== '' ? num : text;
+            });
+            worksheet.addRow(rowData);
+          });
 
           // Apply styles if provided
           if (styles) {
-            applyStyles(ws, styles);
+            applyStyles(worksheet, styles);
           }
-
-          // Add worksheet to workbook
-          XLSX.utils.book_append_sheet(wb, ws, `Sheet${i + 1}`);
         }
       }
       // Handle single table or data
       else {
-        let ws: XLSX.WorkSheet;
+        let worksheet: ExcelJS.Worksheet;
 
         if (table) {
-          const tableElement = document.getElementById(table);
+          const tableElement = document.getElementById(table) as HTMLTableElement;
           if (!tableElement) {
             if (process.env.NODE_ENV !== 'production') {
               console.error(`Table with id "${table}" not found`);
             }
             return false;
           }
-          ws = XLSX.utils.table_to_sheet(tableElement);
+
+          worksheet = workbook.addWorksheet(sheetName || 'Sheet1');
+
+          // Process table headers
+          const headerRow = tableElement.querySelector('thead tr');
+          if (headerRow) {
+            const headers = Array.from(headerRow.querySelectorAll('th, td')).map(
+              cell => cell.textContent?.trim() || ''
+            );
+            if (headers.length > 0) {
+              worksheet.addRow(headers);
+            }
+          }
+
+          // Process table body
+          const rows = tableElement.querySelectorAll('tbody tr');
+          rows.forEach(row => {
+            const rowData = Array.from(row.querySelectorAll('td')).map(cell => {
+              // Try to convert to number if possible
+              const text = cell.textContent?.trim() || '';
+              const num = Number(text);
+              return !isNaN(num) && text !== '' ? num : text;
+            });
+            worksheet.addRow(rowData);
+          });
         } else if (data) {
-          ws = createWorksheetFromData(data, headers);
+          worksheet = workbook.addWorksheet(sheetName || 'Sheet1');
+
+          // Add headers if provided
+          if (headers && headers.length > 0) {
+            worksheet.addRow(headers);
+          }
+
+          // Add data rows
+          data.forEach(row => {
+            worksheet.addRow(row);
+          });
         } else {
           if (process.env.NODE_ENV !== 'production') {
             console.error('No data source provided');
@@ -300,28 +463,21 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
 
         // Apply styles if provided
         if (styles) {
-          ws = applyStyles(ws, styles);
+          applyStyles(worksheet, styles);
         }
-
-        // Add worksheet to workbook
-        XLSX.utils.book_append_sheet(wb, ws, sheetName || 'Sheet1');
       }
 
       // Check if we have any sheets
-      if (wb.SheetNames.length === 0) {
+      if (workbook.worksheets.length === 0) {
         if (process.env.NODE_ENV !== 'production') {
           console.error('No valid data to export');
         }
         return false;
       }
 
-      // Use xlsx-style for styled workbooks
-      if (styles || (sheets && sheets.some(s => s.styles))) {
-        // Convert to xlsx-style format
-        const xsWb = XLSXStyle.write(wb, { bookType: format, type: 'binary' });
-
-        // Create a Blob and trigger download
-        const blob = new Blob([s2ab(xsWb)], {
+      // Write to buffer and trigger download
+      workbook.xlsx.writeBuffer().then(buffer => {
+        const blob = new Blob([buffer], {
           type:
             format === 'xlsx'
               ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -336,10 +492,7 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-      } else {
-        // Use regular xlsx for non-styled workbooks
-        XLSX.writeFile(wb, `${fileName}.${format}`);
-      }
+      });
 
       return true;
     } catch (error) {
@@ -348,18 +501,6 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
       }
       return false;
     }
-  }
-
-  /**
-   * Converts a string to an ArrayBuffer
-   */
-  function s2ab(s: string): ArrayBuffer {
-    const buf = new ArrayBuffer(s.length);
-    const view = new Uint8Array(buf);
-    for (let i = 0; i < s.length; i++) {
-      view[i] = s.charCodeAt(i) & 0xff;
-    }
-    return buf;
   }
 
   /**
@@ -427,7 +568,7 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
         success = downloadLegacy(tableElement.outerHTML, fileName, sheetName);
       } else {
         // Use modern method
-        success = downloadWithXLSX(
+        success = downloadWithExcelJS(
           fileName,
           format,
           useExport.sheets,

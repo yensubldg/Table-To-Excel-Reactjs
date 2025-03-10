@@ -4,14 +4,11 @@
  * This script formats all source files using Prettier and ESLint
  */
 
-import { execSync } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
+const { execSync } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 
 // Get the project root directory
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname);
 
 console.log('🔍 Starting code formatting process...');

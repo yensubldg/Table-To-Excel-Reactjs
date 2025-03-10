@@ -13,15 +13,18 @@ mockTableElement.innerHTML = `
   </tbody>
 `;
 
-// Mock XLSX library
-jest.mock('xlsx', () => ({
+// Create a mock for XLSX
+const mockXLSX = {
   utils: {
     book_new: jest.fn(() => ({})),
     table_to_sheet: jest.fn(() => ({})),
     book_append_sheet: jest.fn(),
   },
   writeFile: jest.fn(),
-}));
+};
+
+// Mock XLSX library
+jest.mock('xlsx', () => mockXLSX);
 
 // Test component using the hook
 const TestComponent: React.FC = () => {
@@ -55,17 +58,15 @@ describe('useDownloadExcel', () => {
   });
 
   it('should call XLSX functions when button is clicked', () => {
-    const xlsx = require('xlsx');
-
     render(<TestComponent />);
 
     const button = screen.getByText('Export');
     fireEvent.click(button);
 
-    expect(xlsx.utils.book_new).toHaveBeenCalled();
-    expect(xlsx.utils.table_to_sheet).toHaveBeenCalledWith(mockTableElement);
-    expect(xlsx.utils.book_append_sheet).toHaveBeenCalled();
-    expect(xlsx.writeFile).toHaveBeenCalled();
+    expect(mockXLSX.utils.book_new).toHaveBeenCalled();
+    expect(mockXLSX.utils.table_to_sheet).toHaveBeenCalledWith(mockTableElement);
+    expect(mockXLSX.utils.book_append_sheet).toHaveBeenCalled();
+    expect(mockXLSX.writeFile).toHaveBeenCalled();
   });
 
   it('should handle missing table element', () => {

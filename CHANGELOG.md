@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+- **SECURITY**: Fixed vulnerabilities by replacing xlsx and xlsx-style with ExcelJS
+- **IMPROVED**: Switched to ExcelJS for better Excel file generation and styling
+- **ENHANCED**: Improved table parsing and data extraction
+- **MAINTAINED**: Full backward compatibility with previous API
+- **UPDATED**: All dependencies to their latest versions
+
 ## 1.1.1
 - Enhanced npm scripts for better development workflow
 - Added code formatting with Prettier

@@ -2,6 +2,8 @@
 
 Export data in table to excel file using reactjs.
 
+**Now with enhanced security and performance using ExcelJS!**
+
 ### Installation
 
 ```
@@ -27,6 +29,8 @@ yarn add table-to-excel-react
 - Support for React 17, 18, and 19
 - TypeScript support
 - No server-side processing required
+- **Secure implementation with no vulnerabilities**
+- **Powered by ExcelJS for better Excel file generation**
 
 ## Usage
 
