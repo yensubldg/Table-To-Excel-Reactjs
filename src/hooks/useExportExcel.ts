@@ -165,8 +165,7 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
           // Handle single cell case
           const match = start.match(/([A-Z]+)(\d+)/);
           if (match) {
-            const col = match[1];
-            const row = parseInt(match[2]);
+            // We don't need to extract col and row separately since we're using the full cell reference
             const cell = ws.getCell(start);
             applyStyleToCell(cell, cellStyle);
           }
@@ -312,42 +311,13 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
               continue;
             }
 
-            worksheet = workbook.addWorksheet(sheetConfig.name);
-
-            // Process table headers
-            const headerRow = tableElement.querySelector('thead tr');
-            if (headerRow) {
-              const headers = Array.from(headerRow.querySelectorAll('th, td')).map(
-                cell => cell.textContent?.trim() || ''
-              );
-              if (headers.length > 0) {
-                worksheet.addRow(headers);
-              }
-            }
-
-            // Process table body
-            const rows = tableElement.querySelectorAll('tbody tr');
-            rows.forEach(row => {
-              const rowData = Array.from(row.querySelectorAll('td')).map(cell => {
-                // Try to convert to number if possible
-                const text = cell.textContent?.trim() || '';
-                const num = Number(text);
-                return !isNaN(num) && text !== '' ? num : text;
-              });
-              worksheet.addRow(rowData);
-            });
+            worksheet = createWorksheetFromTable(workbook, tableElement);
+            // Rename the worksheet
+            worksheet.name = sheetConfig.name;
           } else if (sheetConfig.data) {
-            worksheet = workbook.addWorksheet(sheetConfig.name);
-
-            // Add headers if provided
-            if (sheetConfig.headers && sheetConfig.headers.length > 0) {
-              worksheet.addRow(sheetConfig.headers);
-            }
-
-            // Add data rows
-            sheetConfig.data.forEach(row => {
-              worksheet.addRow(row);
-            });
+            worksheet = createWorksheetFromData(workbook, sheetConfig.data, sheetConfig.headers);
+            // Rename the worksheet
+            worksheet.name = sheetConfig.name;
           } else {
             if (process.env.NODE_ENV !== 'production') {
               console.error(`Sheet "${sheetConfig.name}" has no data source`);
@@ -374,30 +344,9 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
             continue;
           }
 
-          const worksheet = workbook.addWorksheet(`Sheet${i + 1}`);
-
-          // Process table headers
-          const headerRow = tableElement.querySelector('thead tr');
-          if (headerRow) {
-            const headers = Array.from(headerRow.querySelectorAll('th, td')).map(
-              cell => cell.textContent?.trim() || ''
-            );
-            if (headers.length > 0) {
-              worksheet.addRow(headers);
-            }
-          }
-
-          // Process table body
-          const rows = tableElement.querySelectorAll('tbody tr');
-          rows.forEach(row => {
-            const rowData = Array.from(row.querySelectorAll('td')).map(cell => {
-              // Try to convert to number if possible
-              const text = cell.textContent?.trim() || '';
-              const num = Number(text);
-              return !isNaN(num) && text !== '' ? num : text;
-            });
-            worksheet.addRow(rowData);
-          });
+          const worksheet = createWorksheetFromTable(workbook, tableElement);
+          // Rename the worksheet
+          worksheet.name = `Sheet${i + 1}`;
 
           // Apply styles if provided
           if (styles) {
@@ -418,42 +367,13 @@ export const useDownloadExcel = (useExport: UseExport): UseExportReturn => {
             return false;
           }
 
-          worksheet = workbook.addWorksheet(sheetName || 'Sheet1');
-
-          // Process table headers
-          const headerRow = tableElement.querySelector('thead tr');
-          if (headerRow) {
-            const headers = Array.from(headerRow.querySelectorAll('th, td')).map(
-              cell => cell.textContent?.trim() || ''
-            );
-            if (headers.length > 0) {
-              worksheet.addRow(headers);
-            }
-          }
-
-          // Process table body
-          const rows = tableElement.querySelectorAll('tbody tr');
-          rows.forEach(row => {
-            const rowData = Array.from(row.querySelectorAll('td')).map(cell => {
-              // Try to convert to number if possible
-              const text = cell.textContent?.trim() || '';
-              const num = Number(text);
-              return !isNaN(num) && text !== '' ? num : text;
-            });
-            worksheet.addRow(rowData);
-          });
+          worksheet = createWorksheetFromTable(workbook, tableElement);
+          // Rename the worksheet
+          worksheet.name = sheetName || 'Sheet1';
         } else if (data) {
-          worksheet = workbook.addWorksheet(sheetName || 'Sheet1');
-
-          // Add headers if provided
-          if (headers && headers.length > 0) {
-            worksheet.addRow(headers);
-          }
-
-          // Add data rows
-          data.forEach(row => {
-            worksheet.addRow(row);
-          });
+          worksheet = createWorksheetFromData(workbook, data, headers);
+          // Rename the worksheet
+          worksheet.name = sheetName || 'Sheet1';
         } else {
           if (process.env.NODE_ENV !== 'production') {
             console.error('No data source provided');
